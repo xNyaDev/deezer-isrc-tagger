@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut tagged_file = lofty::read_from_path(&args.filename)?;
 
-    let isrc = args.isrc.unwrap_or(
+    let isrc = args.isrc.unwrap_or_else(|| {
         tagged_file
             .primary_tag()
             .expect("File is not tagged, please pass in an ISRC with --isrc")
@@ -44,8 +44,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             .value()
             .clone()
             .into_string()
-            .expect("File tags do not have an ISRC, please pass it in with --isrc"),
-    );
+            .expect("File tags do not have an ISRC, please pass it in with --isrc")
+    });
 
     let encoding_info = tagged_file.primary_tag().map(|primary_tag| {
         [
