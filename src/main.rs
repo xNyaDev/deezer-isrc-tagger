@@ -7,6 +7,7 @@ use clap::Parser;
 use lofty::{AudioFile, ItemKey, Picture, PictureType, Tag, TaggedFileExt};
 
 mod metadata;
+mod qobuz_lookup;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about)]
@@ -28,6 +29,9 @@ struct Args {
     /// in rclone - see https://rclone.org/overview/#encoding
     #[clap(long)]
     rename: bool,
+    /// Use Qobuz API to lookup the ISRC given an album URL or ID
+    #[clap(long, num_args = 2, value_names = ["QOBUZ_APP_ID", "ALBUM_URL_OR_ID"])]
+    qobuz_lookup: Option<Vec<String>>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -35,17 +39,21 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut tagged_file = lofty::read_from_path(&args.filename)?;
 
-    let isrc = args.isrc.unwrap_or_else(|| {
-        tagged_file
-            .primary_tag()
-            .expect("File is not tagged, please pass in an ISRC with --isrc")
-            .get(&ItemKey::Isrc)
-            .expect("File tags do not have an ISRC, please pass it in with --isrc")
-            .value()
-            .clone()
-            .into_string()
-            .expect("File tags do not have an ISRC, please pass it in with --isrc")
-    });
+    let isrc = if let Some(qobuz_lookup) = args.qobuz_lookup {
+        qobuz_lookup::find_isrc(&qobuz_lookup[0], qobuz_lookup[1].split('/').last().unwrap())?
+    } else {
+        args.isrc.unwrap_or_else(|| {
+            tagged_file
+                .primary_tag()
+                .expect("File is not tagged, please pass in an ISRC with --isrc")
+                .get(&ItemKey::Isrc)
+                .expect("File tags do not have an ISRC, please pass it in with --isrc")
+                .value()
+                .clone()
+                .into_string()
+                .expect("File tags do not have an ISRC, please pass it in with --isrc")
+        })
+    };
 
     let encoding_info = tagged_file.primary_tag().map(|primary_tag| {
         [

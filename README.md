@@ -25,3 +25,17 @@ The behaviour is emulating using [rclone encoding flag](https://rclone.org/overv
 `Asterisk,BackSlash,Colon,DoubleQuote,LtGt,Pipe,Question,Slash`
 
 For example usage run `deezer-isrc-tagger -h`
+
+## Qobuz ISRC lookup
+
+Files bought from Qobuz sometimes come without ISRCs embedded inside. deezer-isrc-tagger can look them up if provided
+with an album ID or a link. If there's more than one song on the album, the user will be prompted to select the correct
+one.
+
+A valid Qobuz API Application ID is required for that. Qobuz does not seem to provide API keys for open source
+applications, so the end user will have to get one on their own. 
+
+To use the album lookup add a flag `--qobuz-lookup 123 https://www.qobuz.com/nl-nl/album/some-url/ABC12345` or 
+`--qobuz-lookup 123 ABC12345` where `123` is the Application ID and the second string is either the album URL or ID.
+
+Qobuz ISRC lookup takes priority over `--isrc` and embedded ISRC tag.
