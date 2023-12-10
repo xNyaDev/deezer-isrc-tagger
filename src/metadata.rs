@@ -117,19 +117,35 @@ pub fn get_metadata_from_deezer(isrc: String) -> Result<Metadata, Box<dyn Error>
         .text()?;
     let album_info = serde_json::from_str::<DeezerAlbum>(&album_info)?;
 
+    let resolve_artist = |artist: DeezerArtist| {
+        let artist_info = reqwest_client
+            .get(format!("https://api.deezer.com/artist/{}", artist.id))
+            .send()
+            .ok()?
+            .text()
+            .ok()?;
+        let artist_info = serde_json::from_str::<DeezerArtist>(&artist_info).ok()?;
+
+        Some(Artist::from(DeezerArtist {
+            id: artist.id,
+            name: artist_info.name,
+            role: artist.role,
+        }))
+    };
+
     Ok(Metadata {
         title: track_info.title,
         artists: track_info
             .contributors
             .into_iter()
-            .map(|x| x.into())
+            .filter_map(resolve_artist)
             .collect(),
         album: Album {
             title: track_info.album.title,
             artists: album_info
                 .contributors
                 .into_iter()
-                .map(|x| x.into())
+                .filter_map(resolve_artist)
                 .collect(),
             genres: album_info
                 .genres
@@ -193,6 +209,8 @@ struct DeezerTrackAlbum {
 
 #[derive(serde::Deserialize)]
 struct DeezerArtist {
+    #[serde(deserialize_with = "deserialize_string_from_number")]
+    id: String,
     name: String,
     role: Option<String>,
 }
